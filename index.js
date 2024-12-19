@@ -10,7 +10,7 @@ const app = express();
 // MongoDB Atlas connection string (remove deprecated option)
 const mongoURI = "mongodb+srv://atorane328:hICkwQ1EdrMwnLrD@aditya.x6yc3.mongodb.net/?retryWrites=true&w=majority&appName=aditya";
 
-mongoose.connect(mongoURI, { useUnifiedTopology: true })  // Remove useNewUrlParser as it's no longer needed
+mongoose.connect(mongoURI)
   .then(() => console.log('Connected to MongoDB Atlas'))
   .catch(err => console.log('MongoDB connection error:', err));
 
