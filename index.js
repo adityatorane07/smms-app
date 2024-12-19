@@ -7,19 +7,19 @@ const path = require("path");
 
 const app = express();
 
-// MongoDB Atlas connection string
+// MongoDB Atlas connection string (remove deprecated option)
 const mongoURI = "mongodb+srv://atorane328:hICkwQ1EdrMwnLrD@aditya.x6yc3.mongodb.net/?retryWrites=true&w=majority&appName=aditya";
 
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(mongoURI, { useUnifiedTopology: true })  // Remove useNewUrlParser as it's no longer needed
   .then(() => console.log('Connected to MongoDB Atlas'))
   .catch(err => console.log('MongoDB connection error:', err));
 
 // Define a schema for student data
 const studentSchema = new mongoose.Schema({
-  rno: Number,       // Optional, if you want to keep this field
+  rno: Number,
   name: String,
   marks: Number,
-  image: String,     // This will store the file name/path
+  image: String,  // Store the filename or image URL
 });
 
 const Student = mongoose.model('Student', studentSchema);
@@ -28,6 +28,9 @@ const Student = mongoose.model('Student', studentSchema);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files for uploaded images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Multer setup for file upload
 const storage = multer.diskStorage({
@@ -57,7 +60,7 @@ app.post("/ss", upload.single("file"), (req, res) => {
     rno: rno,
     name: name,
     marks: marks,
-    image: req.file.filename, // Store image filename
+    image: req.file.filename,  // Save the filename, image is accessible via `/uploads/filename`
   });
 
   newStudent.save()
