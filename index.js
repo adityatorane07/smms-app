@@ -7,7 +7,7 @@ const path = require("path");
 
 const app = express();
 
-// MongoDB Atlas connection string
+// Use MongoDB connection string from environment variables
 const mongoURI = "mongodb+srv://atorane328:hICkwQ1EdrMwnLrD@aditya.x6yc3.mongodb.net/?retryWrites=true&w=majority&appName=aditya";
 
 mongoose.connect(mongoURI)
@@ -16,10 +16,10 @@ mongoose.connect(mongoURI)
 
 // Define a schema for student data
 const studentSchema = new mongoose.Schema({
-  rno: Number,       
+  rno: Number,
   name: String,
   marks: Number,
-  image: String,     
+  image: String, // This will store the file name/path
 });
 
 const Student = mongoose.model('Student', studentSchema);
@@ -46,7 +46,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// **POST** route to save student data
+// Route to save student data
 app.post("/ss", upload.single("file"), (req, res) => {
   const { rno, name, marks } = req.body;
   if (!rno || !name || !marks || !req.file) {
@@ -57,7 +57,7 @@ app.post("/ss", upload.single("file"), (req, res) => {
     rno: rno,
     name: name,
     marks: marks,
-    image: req.file.filename, 
+    image: req.file.filename, // Store image filename
   });
 
   newStudent.save()
@@ -68,11 +68,11 @@ app.post("/ss", upload.single("file"), (req, res) => {
     });
 });
 
-// **GET** route to fetch all student data
+// GET route to fetch all student data
 app.get("/gs", (req, res) => {
   Student.find()
     .then((students) => {
-      res.json(students); 
+      res.json(students);  // Send all student records as JSON
     })
     .catch((err) => {
       console.error("Error fetching students:", err);
@@ -80,32 +80,40 @@ app.get("/gs", (req, res) => {
     });
 });
 
-// **DELETE** route to delete a student by ID
-app.delete("/delete/:id", (req, res) => {
-  const studentId = req.params.id;
+// DELETE route to remove student and image
+app.delete("/ds", (req, res) => {
+  const { rno, image } = req.body;
 
-  Student.findByIdAndDelete(studentId)
-    .then((result) => {
-      if (!result) {
-        return res.status(404).send({ error: "Student not found" });
+  if (!rno || !image) {
+    return res.status(400).send({ error: "Student roll number and image are required." });
+  }
+
+  // Delete student by roll number
+  Student.findOneAndDelete({ rno })
+    .then((deletedStudent) => {
+      if (!deletedStudent) {
+        return res.status(404).send({ error: "Student not found." });
       }
-      
-      // If the student has an associated image, delete the image from the 'uploads' folder
-      if (result.image) {
-        const imagePath = path.join(__dirname, 'uploads', result.image);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
+
+      // Delete the image file from the server
+      const imagePath = path.join(__dirname, 'uploads', image);
+      fs.unlink(imagePath, (err) => {
+        if (err) {
+          console.error("Error deleting image:", err);
+          return res.status(500).send({ error: "Error deleting image." });
         }
-      }
 
-      res.send({ message: "Record deleted successfully", result });
+        res.send({ message: "Record and image deleted successfully." });
+      });
     })
     .catch((err) => {
-      console.error("Error deleting record:", err);
-      res.status(500).send({ error: "Failed to delete student", details: err });
+      console.error("Error deleting student:", err);
+      res.status(500).send({ error: "Failed to delete student.", details: err });
     });
 });
 
+// Serve uploaded images statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Start server
-const PORT = process.env.PORT || 9000;
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.listen(9000, () => console.log("Server running at http://localhost:9000"));
